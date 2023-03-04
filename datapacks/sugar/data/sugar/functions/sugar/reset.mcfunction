@@ -18,6 +18,5 @@ scoreboard players set const13 const 13
 scoreboard players set const14 const 14
 scoreboard players set const15 const 15
 scoreboard objectives add old_is_painting dummy
-scoreboard players set @a old_is_painting -1
 scoreboard players set @s old_is_painting 0
 scoreboard objectives add is_painting dummy

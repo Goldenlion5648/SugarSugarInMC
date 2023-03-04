@@ -19,6 +19,7 @@ wall_dims = (50, 50, 0)
 offset_corner = (50, 50, -3)
 background_block = "red_concrete"
 painting_block = "light_blue_concrete"
+sugar_block = "white_concrete"
 platform_block = "stone"
 
 platform_center = (125, 24, 65)
@@ -88,7 +89,7 @@ hacky_shoot_facing.extend(
 
 is_painting_score = "is_painting"
 old_is_painting_score = "old_is_painting"
-create_scoreboard(old_is_painting_score, -1, at_a())
+# create_scoreboard(old_is_painting_score, -1, at_a())
 
 activate_painting = OutputFile("activate_painting", is_update_file=True)
 activate_painting.extend(
@@ -98,4 +99,44 @@ activate_painting.extend(
             operation(old_is_painting_score, '=', is_painting_score, at_s(), at_s())
         )
     )
+)
+
+sugar_tag = "sugar"
+sugar_maker = OutputFile("sugar_maker")
+sugar_maker.extend(
+    raw('summon armor_stand ~ ~-1.75 ~ {NoGravity:1b,Silent:1b,Marker:1b,Invisible:1b,NoBasePlate:1b,PersistenceRequired:1b,Motion:[1.0,0.0,0.0],Tags:["sugar"],ArmorItems:[{},{},{},{id:"minecraft:white_concrete",Count:1b}]}'.replace("__sugar_tag__", sugar_tag)) + 
+    setblock("~ ~ ~", sugar_block)
+)
+
+has_not_moved_tag = "has_not_moved"
+sugar_movement = OutputFile("sugar_movement")
+should_move_tag = 'should_move'
+sugar_movement.extend(
+    execute_as_at(at_e(tags=[sugar_tag]),
+        tag_add(at_s(), has_not_moved_tag)
+    ) +
+
+    list(it.chain.from_iterable(
+        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
+            execute_if_block(f"~{x_off} ~0.4875 ~", AIR, 
+                add_tag(at_s(), should_move_tag)
+            )
+        ) +
+        execute_as_at(at_e(tag=should_move_tag), 
+            setblock("~ ~2 ~", AIR) +
+            tp(at_s(), f"~{x_off} ~-1 ~") +
+            setblock("~ ~2 ~", sugar_block) +
+            remove_tag(at_s(), has_not_moved_tag) +
+            remove_tag(at_s(), should_move_tag)
+        ) for x_off in [0, -1, 1]
+    ))
+    
+)
+
+remove_all_sugar = OutputFile("remove_all_sugar")
+remove_all_sugar.extend(
+    execute_as_at(at_e(tag=sugar_tag),
+        setblock("~ ~2 ~", AIR)
+    ) +
+    kill(at_e(tag=sugar_tag))
 )
