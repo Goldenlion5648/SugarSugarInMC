@@ -1,0 +1,8 @@
+{
+    "replace": false,
+    "values": [
+        "sugar:sugar/helper_update",
+        "sugar:sugar/shoot_facing_controller",
+        "sugar:sugar/activate_painting"
+    ]
+}
