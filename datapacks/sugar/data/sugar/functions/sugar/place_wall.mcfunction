@@ -1,2 +1,14 @@
-fill 150 50 97 100 0 100 air destroy 
-fill 100 0 100 150 50 100 red_concrete destroy 
+fill 150 50 97 100 0 100 air replace 
+fill 100 0 100 150 50 100 red_concrete replace 
+fill 100 0 99 100 0 99 dark_oak_wood replace 
+fill 100 0 99 100 50 99 dark_oak_wood replace 
+fill 100 0 99 150 0 99 dark_oak_wood replace 
+fill 100 0 99 100 50 99 dark_oak_wood replace 
+fill 100 0 99 150 0 99 dark_oak_wood replace 
+fill 100 50 99 100 50 99 dark_oak_wood replace 
+fill 100 50 99 150 50 99 dark_oak_wood replace 
+fill 100 50 99 150 50 99 dark_oak_wood replace 
+fill 150 0 99 150 0 99 dark_oak_wood replace 
+fill 150 0 99 150 50 99 dark_oak_wood replace 
+fill 150 0 99 150 50 99 dark_oak_wood replace 
+fill 150 50 99 150 50 99 dark_oak_wood replace 

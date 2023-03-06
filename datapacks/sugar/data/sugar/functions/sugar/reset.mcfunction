@@ -17,6 +17,26 @@ scoreboard players set const12 const 12
 scoreboard players set const13 const 13
 scoreboard players set const14 const 14
 scoreboard players set const15 const 15
+scoreboard objectives add sugar_in_cup dummy
 scoreboard objectives add old_is_painting dummy
-scoreboard players set @s old_is_painting 0
 scoreboard objectives add is_painting dummy
+scoreboard objectives add const dummy
+scoreboard players set const1 const 1
+scoreboard objectives add sugar_needed_in_cup dummy
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard objectives add gravity_direction_is_down dummy
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard objectives add spawn_sugar_cooldown dummy
+scoreboard objectives add remaining_sugar_to_dispense dummy
+scoreboard players set const1 const 1
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0

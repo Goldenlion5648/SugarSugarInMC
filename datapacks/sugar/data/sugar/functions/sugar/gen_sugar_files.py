@@ -22,16 +22,25 @@ painting_block = "light_blue_concrete"
 sugar_block = "white_concrete"
 platform_block = "stone"
 
+spawn_sugar_cooldown_score = "spawn_sugar_cooldown"
+sugar_in_cup_score = "sugar_in_cup"
+sugar_needed_in_cup_score = "sugar_needed_in_cup"
+create_scoreboard(sugar_in_cup_score)
+cup_counter_tag = "cup_counter"
+
 platform_center = (125, 24, 65)
+high_corner = element_wise(wall_dims, game_corner)
 
 place_wall = OutputFile("place_wall")
 place_wall.extend(
     fill(element_wise(game_corner, offset_corner), game_corner, "air") +
-    fill(game_corner, element_wise(wall_dims, game_corner), background_block)
+    fill(game_corner, high_corner, background_block) +
+    border(element_wise(game_corner, (0,0,-1)), element_wise(element_wise(wall_dims, (0,0,-1)), game_corner), "dark_oak_wood")
+    # fill(element_wise(game_corner, (0,0,-1)), element_wise(element_wise(wall_dims, (0,0,-1)), game_corner), 'black_concrete', 'outline')
 )
 
 
-place_sugar = OutputFile("place_sugar")
+# place_sugar = OutputFile("place_sugar")
 
 # place_sugar.extend(
 #     execute_as_at(at_a(), anchored_eyes=True,to_run=
@@ -42,6 +51,9 @@ place_sugar = OutputFile("place_sugar")
 #         )
 #     )
 # )
+
+
+
 
 paint_brush_tag = "paint_brush"
 shoot_testing = OutputFile("shoot_testing")
@@ -74,15 +86,26 @@ positions = ["^ ^ ^-1",
 hacky_shoot_facing.extend(
     it.chain.from_iterable(
         execute_at(f"^ ^ ^{offset}",
-            execute_if_block_matches("^ ^ ^", background_block,
-                setblock("^ ^ ^-1", painting_block, mode='keep') +
-                setblock("^ ^1 ^-1", painting_block, mode='keep') +
-                setblock("^ ^-1 ^-1", painting_block, mode='keep') +
-                setblock("^1 ^ ^-1", painting_block, mode='keep') +
-                setblock("^-1 ^ ^-1", painting_block, mode='keep')
+            execute_if_block_matches("~ ~ ~1", background_block,
+                [
+                    setblock(f"~{x_off} ~{y_off} ~", painting_block, mode='keep')[0] 
+                    for x_off in [0]
+                    for y_off in [0]
+                    # for x_off in range(-1, 2)
+                    # for y_off in range(-1, 2)
+                ]
+                # setblock("^ ^ ^-1", painting_block, mode='keep') +
+                # setblock("^ ^1 ^-1", painting_block, mode='keep') +
+                # setblock("^ ^-1 ^-1", painting_block, mode='keep') +
+                # setblock("^1 ^ ^-1", painting_block, mode='keep') +
+                # setblock("^-1 ^ ^-1", painting_block, mode='keep')
             ), anchored_eyes=True
         ) for offset in range(1, 70)
     )
+)
+
+hacky_shoot_facing.extend(
+    raw('''advancement revoke @a only sugar:using_painting_item''')
 )
 
 #  execute_if_score_other_score(score1 : str, op: str, score2: str, to_run : list, owner1: str=GLOBAL_VAR_HOLDER, owner2: str=GLOBAL_VAR_HOLDER, if_or_unless='if'):
@@ -104,39 +127,137 @@ activate_painting.extend(
 sugar_tag = "sugar"
 sugar_maker = OutputFile("sugar_maker")
 sugar_maker.extend(
-    raw('summon armor_stand ~ ~-1.75 ~ {NoGravity:1b,Silent:1b,Marker:1b,Invisible:1b,NoBasePlate:1b,PersistenceRequired:1b,Motion:[1.0,0.0,0.0],Tags:["sugar"],ArmorItems:[{},{},{},{id:"minecraft:white_concrete",Count:1b}]}'.replace("__sugar_tag__", sugar_tag)) + 
+    raw('summon marker ~ ~ ~ {NoGravity:1b,Silent:1b,Marker:1b,Invisible:1b,NoBasePlate:1b,PersistenceRequired:1b,Motion:[0.0,0.0,0.0],Tags:["__sugar_tag__"],ArmorItems:[{},{},{},{id:"minecraft:white_concrete",Count:1b}]}'.replace("__sugar_tag__", sugar_tag)) + 
     setblock("~ ~ ~", sugar_block)
 )
 
-has_not_moved_tag = "has_not_moved"
-sugar_movement = OutputFile("sugar_movement")
-should_move_tag = 'should_move'
-sugar_movement.extend(
-    execute_as_at(at_e(tags=[sugar_tag]),
-        tag_add(at_s(), has_not_moved_tag)
-    ) +
-
-    list(it.chain.from_iterable(
+def movement_code(y_dir=-1):
+    return list(it.chain.from_iterable(
         execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
-            execute_if_block(f"~{x_off} ~0.4875 ~", AIR, 
-                add_tag(at_s(), should_move_tag)
+            execute_if_block(f"~{x_off} ~{y_off1} ~", cup_opening_block, 
+                execute_if_block(f"~{x_off} ~{y_off2} ~", cup_opening_block, 
+                    execute_if_score(sugar_needed_in_cup_score, 'matches 1..',
+                        decrement_with_bound(sugar_needed_in_cup_score, 0, at_e(tag=cup_counter_tag,sort='nearest',limit=1)) +
+                        setblock("~ ~ ~", AIR) +
+                        kill(at_s()), owner=at_e(tag=cup_counter_tag,sort='nearest',limit=1)
+                    )
+                )
+            )
+        ) +
+        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
+            execute_if_block(f"~{x_off} ~{y_off1} ~", AIR, 
+                execute_if_block(f"~{x_off} ~{y_off2} ~", AIR, 
+                    add_tag(at_s(), should_move_tag)
+                )
             )
         ) +
         execute_as_at(at_e(tag=should_move_tag), 
-            setblock("~ ~2 ~", AIR) +
-            tp(at_s(), f"~{x_off} ~-1 ~") +
-            setblock("~ ~2 ~", sugar_block) +
+            setblock("~ ~ ~", AIR) +
+            tp(at_s(), f"~{x_off} ~{y_dir} ~") +
+            setblock("~ ~ ~", sugar_block) +
             remove_tag(at_s(), has_not_moved_tag) +
             remove_tag(at_s(), should_move_tag)
-        ) for x_off in [0, -1, 1]
+        ) for x_off, (y_off1, y_off2) in [
+            (0, (y_dir, y_dir)), 
+            (-1, (0, y_dir)), 
+            (1, (0, y_dir))
+        ]
     ))
-    
+
+has_not_moved_tag = "has_not_moved"
+sugar_movement = OutputFile("sugar_movement", is_update_file=True)
+should_move_tag = 'should_move'
+cup_opening_block = "quartz_block"
+collected_sugar_score = "collected_sugar"
+gravity_direction_is_down_score = "gravity_direction_is_down"
+sugar_movement.extend(
+    execute_if_score_equals(spawn_sugar_cooldown_score, 0,
+        execute_as_at(at_e(tags=[sugar_tag]),
+            tag_add(at_s(), has_not_moved_tag)
+        ) + execute_if_score_equals(gravity_direction_is_down_score, 1,
+            movement_code()
+        ) + execute_if_score_equals(gravity_direction_is_down_score, 0,
+            movement_code(1)
+        )
+    )
+)
+
+sugar_spawner = OutputFile("sugar_spawner", is_update_file=True)
+remaining_sugar_to_dispense_score = "remaining_sugar_to_dispense"
+create_scoreboard(remaining_sugar_to_dispense_score, 30)
+middle_top_of_board = ((high_corner[0] + game_corner[0]) // 2 + .5, high_corner[1] - 5.5, game_corner[2] - .5)
+sugar_spawner.extend(
+    execute_if_score_matches(remaining_sugar_to_dispense_score, '1..', 
+        execute_if_score_equals(spawn_sugar_cooldown_score, 0,
+            execute_positioned(middle_top_of_board,
+                call_function(sugar_maker)
+            ) +
+            operation(remaining_sugar_to_dispense_score, '-=', 1)
+        )
+    )
 )
 
 remove_all_sugar = OutputFile("remove_all_sugar")
 remove_all_sugar.extend(
     execute_as_at(at_e(tag=sugar_tag),
-        setblock("~ ~2 ~", AIR)
+        setblock("~ ~ ~", AIR)
     ) +
     kill(at_e(tag=sugar_tag))
+)
+
+flip_gravity = OutputFile("flip_gravity")
+flip_gravity.extend(
+    execute_if_score_equals(gravity_direction_is_down_score, 1,
+        delay_code_block(
+            set_score(gravity_direction_is_down_score, 0),
+            1
+        )
+    ) + execute_if_score_equals(gravity_direction_is_down_score, 0,
+        delay_code_block(
+            set_score(gravity_direction_is_down_score, 1),
+            1
+        )
+    )
+)
+
+reset_scores = OutputFile("reset_scores")
+reset_scores.extend(
+    set_score(remaining_sugar_to_dispense_score, 30),
+    set_score(is_painting_score, 0, at_a()),
+    set_score(old_is_painting_score, 0, at_a()),
+    set_score(gravity_direction_is_down_score, 1),
+    set_score(spawn_sugar_cooldown_score, 100),
+)
+
+place_cup = OutputFile("place_cup")
+place_cup.extend(
+    place("sugar:cup", element_wise(game_corner, (5, 5, -2))) + 
+    set_score(sugar_needed_in_cup_score, 100, at_e(tag=cup_counter_tag))
+)
+place_title = OutputFile("place_title")
+place_title.extend(
+    execute_at(element_wise(middle_top_of_board, (0,1,-2)),
+        raw('''execute summon text_display run data merge entity @s {billboard:"fixed",Rotation:[-180F,0F],transformation:{scale:[16f,16f,16f]},text:'{"text":"Sugar, Sugar"}'}''')
+    )
+)
+
+update_cup_text = OutputFile("update_cup_text", is_update_file=True)
+update_cup_text.extend(
+    raw('''execute as @e[type=minecraft:text_display,tag=cup_text] run data merge entity @s {text:'{"score":{"name":"@e[tag=cup_counter,sort=nearest,limit=1]","objective":"sugar_needed_in_cup"}}'}''')
+)
+
+reset_level = OutputFile("reset_level")
+reset_level.extend(
+    call_function(remove_all_sugar),
+    kill(at_e(type='!player')),
+    call_function(place_wall),
+    call_function(place_title),
+    call_function(reset_scores),
+    call_function(place_cup),
+    clear_scheduled_functions()
+)
+
+end_of_tick_code.extend(
+    operation(spawn_sugar_cooldown_score, '-=', 1),
+    operation(spawn_sugar_cooldown_score, '>', 0)
 )
