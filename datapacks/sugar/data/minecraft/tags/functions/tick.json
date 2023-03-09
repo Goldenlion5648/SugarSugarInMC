@@ -7,6 +7,6 @@
         "sugar:sugar/activate_painting",
         "sugar:sugar/sugar_movement",
         "sugar:sugar/sugar_spawner",
-        "sugar:sugar/update_cup_text"
+        "sugar:sugar/cup_update"
     ]
 }

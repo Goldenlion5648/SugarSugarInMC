@@ -28,7 +28,19 @@ scoreboard players set const1 const 1
 scoreboard players set const0 const 0
 scoreboard players set const1 const 1
 scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
 scoreboard objectives add gravity_direction_is_down dummy
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
+scoreboard players set const1 const 1
+scoreboard players set const0 const 0
 scoreboard players set const1 const 1
 scoreboard players set const0 const 0
 scoreboard players set const1 const 1
@@ -38,5 +50,6 @@ scoreboard players set const0 const 0
 scoreboard objectives add spawn_sugar_cooldown dummy
 scoreboard objectives add remaining_sugar_to_dispense dummy
 scoreboard players set const1 const 1
+scoreboard players set const0 const 0
 scoreboard players set const1 const 1
 scoreboard players set const0 const 0

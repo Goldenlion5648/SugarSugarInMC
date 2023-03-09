@@ -28,6 +28,12 @@ sugar_needed_in_cup_score = "sugar_needed_in_cup"
 create_scoreboard(sugar_in_cup_score)
 cup_counter_tag = "cup_counter"
 
+# cup_opening_block = "quartz_block"
+color_to_cup_opening = {
+    "white_concrete": "quartz_block",
+    "orange_concrete": "waxed_copper_block",
+}
+
 platform_center = (125, 24, 65)
 high_corner = element_wise(wall_dims, game_corner)
 
@@ -131,18 +137,43 @@ sugar_maker.extend(
     setblock("~ ~ ~", sugar_block)
 )
 
-def movement_code(y_dir=-1):
+def convert_to_color():
+    z_off_set = 1
+    converter_to_block = {
+        "orange_wool" : "orange_concrete"
+    }
     return list(it.chain.from_iterable(
-        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
-            execute_if_block(f"~{x_off} ~{y_off1} ~", cup_opening_block, 
-                execute_if_block(f"~{x_off} ~{y_off2} ~", cup_opening_block, 
-                    execute_if_score(sugar_needed_in_cup_score, 'matches 1..',
-                        decrement_with_bound(sugar_needed_in_cup_score, 0, at_e(tag=cup_counter_tag,sort='nearest',limit=1)) +
-                        setblock("~ ~ ~", AIR) +
-                        kill(at_s()), owner=at_e(tag=cup_counter_tag,sort='nearest',limit=1)
+        execute_as_at(at_e(tags=[sugar_tag]), to_run=
+            execute_if_block(f"~{x_off} ~ ~{z_off_set}", converter, 
+                setblock(HERE, to_block)
+            )
+        ) for x_off in range(-1, 2) for converter, to_block in converter_to_block.items()
+    ))
+
+def enter_cup(x_off, y_off1, y_off2):
+    return \
+        list(it.chain.from_iterable([
+            execute_if_block(HERE, sugar_block, 
+                execute_if_block(f"~{x_off} ~{y_off1} ~", cup_opening, 
+                    execute_if_block(f"~{x_off} ~{y_off2} ~", cup_opening, 
+                    # TODO: check sugar color against cup color
+                        execute_if_score(sugar_needed_in_cup_score, 'matches 1..',
+                            owner=at_e(tag=cup_counter_tag,sort='nearest',limit=1,distance="..4"),
+                            to_run=
+                            decrement_with_bound(sugar_needed_in_cup_score, 0, at_e(tag=cup_counter_tag,sort='nearest',limit=1,distance="..4")) +
+                            setblock("~ ~ ~", AIR) +
+                            kill(at_s())
+                        )
                     )
                 )
             )
+            for sugar_block, cup_opening in color_to_cup_opening.items()
+        ]))
+
+def movement_code(y_dir=-1):
+    return list(it.chain.from_iterable(
+        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
+            enter_cup(x_off, y_off1, y_off2)
         ) +
         execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
             execute_if_block(f"~{x_off} ~{y_off1} ~", AIR, 
@@ -152,9 +183,10 @@ def movement_code(y_dir=-1):
             )
         ) +
         execute_as_at(at_e(tag=should_move_tag), 
+            clone(HERE, HERE, f"~{x_off} ~{y_dir} ~") +
             setblock("~ ~ ~", AIR) +
             tp(at_s(), f"~{x_off} ~{y_dir} ~") +
-            setblock("~ ~ ~", sugar_block) +
+            # setblock("~ ~ ~", sugar_block) +
             remove_tag(at_s(), has_not_moved_tag) +
             remove_tag(at_s(), should_move_tag)
         ) for x_off, (y_off1, y_off2) in [
@@ -167,7 +199,7 @@ def movement_code(y_dir=-1):
 has_not_moved_tag = "has_not_moved"
 sugar_movement = OutputFile("sugar_movement", is_update_file=True)
 should_move_tag = 'should_move'
-cup_opening_block = "quartz_block"
+
 collected_sugar_score = "collected_sugar"
 gravity_direction_is_down_score = "gravity_direction_is_down"
 sugar_movement.extend(
@@ -179,7 +211,7 @@ sugar_movement.extend(
         ) + execute_if_score_equals(gravity_direction_is_down_score, 0,
             movement_code(1)
         )
-    )
+    ) + convert_to_color()
 )
 
 sugar_spawner = OutputFile("sugar_spawner", is_update_file=True)
@@ -229,11 +261,18 @@ reset_scores.extend(
     set_score(spawn_sugar_cooldown_score, 100),
 )
 
-place_cup = OutputFile("place_cup")
-place_cup.extend(
+place_white_cup = OutputFile("place_white_cup")
+place_white_cup.extend(
     place("sugar:cup", element_wise(game_corner, (5, 5, -2))) + 
     set_score(sugar_needed_in_cup_score, 100, at_e(tag=cup_counter_tag))
 )
+
+place_orange_cup = OutputFile("place_orange_cup")
+place_orange_cup.extend(
+    place("sugar:copper_cup", element_wise(game_corner, (15, 5, -2))) + 
+    set_score(sugar_needed_in_cup_score, 100, at_e(tag=cup_counter_tag))
+)
+
 place_title = OutputFile("place_title")
 place_title.extend(
     execute_at(element_wise(middle_top_of_board, (0,1,-2)),
@@ -241,9 +280,15 @@ place_title.extend(
     )
 )
 
-update_cup_text = OutputFile("update_cup_text", is_update_file=True)
-update_cup_text.extend(
-    raw('''execute as @e[type=minecraft:text_display,tag=cup_text] run data merge entity @s {text:'{"score":{"name":"@e[tag=cup_counter,sort=nearest,limit=1]","objective":"sugar_needed_in_cup"}}'}''')
+cup_update = OutputFile("cup_update", is_update_file=True)
+cup_update.extend(
+    raw('''execute as @e[type=minecraft:text_display,tag=cup_text] run data merge entity @s {text:'{"score":{"name":"@e[tag=cup_counter,sort=nearest,limit=1]","objective":"sugar_needed_in_cup"}}'}''') +
+    set_to_max(sugar_needed_in_cup_score, 0, at_e(tag=cup_counter_tag))
+)
+
+place_filter = OutputFile("place_filter")
+place_filter.extend(
+    place("sugar:orange_filter", element_wise(game_corner, (15, 15, -1)))
 )
 
 reset_level = OutputFile("reset_level")
@@ -253,7 +298,9 @@ reset_level.extend(
     call_function(place_wall),
     call_function(place_title),
     call_function(reset_scores),
-    call_function(place_cup),
+    call_function(place_white_cup),
+    call_function(place_orange_cup),
+    call_function(place_filter),
     clear_scheduled_functions()
 )
 
