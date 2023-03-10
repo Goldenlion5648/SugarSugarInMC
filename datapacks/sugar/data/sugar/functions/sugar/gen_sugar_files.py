@@ -17,6 +17,7 @@ class Tags(Enum):
 game_corner = (100, 0, 100)
 wall_dims = (50, 50, 0)
 offset_corner = (50, 50, -3)
+game_height = wall_dims[1]
 background_block = "red_concrete"
 painting_block = "light_blue_concrete"
 sugar_block = "white_concrete"
@@ -261,6 +262,35 @@ reset_scores.extend(
     set_score(spawn_sugar_cooldown_score, 100),
 )
 
+white = 'white'
+def place_cup_at(pos_x, pos_y, color=white, upside_down=False):
+    structure_name = "cup"
+    if color != white:
+        structure_name = f"{color}_{structure_name}"
+    if upside_down:
+        structure_name = "upside_down_" + structure_name
+    structure_name = f"sugar:{structure_name}"
+    return place(structure_name, element_wise(game_corner, (pos_x, pos_y, -2)))
+
+
+levels_holder = OutputFile("levels_holder", folder="levels")
+# for i in range(5):
+board_center = get_center(game_corner, high_corner)
+cur_level = levels_holder.add_variant(0)
+
+cur_level.extend(
+    place_cup_at(15, 5)
+)
+
+
+current_level_num = create_scoreboard("current_level_num", 0)
+place_level_contents = OutputFile("place_level_contents",
+    list_chain(execute_if_score_equals(current_level_num, i, 
+        call_function(levels_holder.get_variant(i))
+    )
+    for i in range(len(levels_holder.variants)))
+)
+
 place_white_cup = OutputFile("place_white_cup")
 place_white_cup.extend(
     place("sugar:cup", element_wise(game_corner, (5, 5, -2))) + 
@@ -298,9 +328,11 @@ reset_level.extend(
     call_function(place_wall),
     call_function(place_title),
     call_function(reset_scores),
-    call_function(place_white_cup),
-    call_function(place_orange_cup),
-    call_function(place_filter),
+    call_function(place_level_contents),
+    # call_function(place_white_cup),
+    # call_function(place_orange_cup),
+    # call_function(place_filter),
+    set_score(sugar_needed_in_cup_score, 100, at_e(tag=cup_counter_tag)),
     clear_scheduled_functions()
 )
 

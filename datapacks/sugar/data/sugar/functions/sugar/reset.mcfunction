@@ -19,37 +19,16 @@ scoreboard players set const14 const 14
 scoreboard players set const15 const 15
 scoreboard objectives add sugar_in_cup dummy
 scoreboard objectives add old_is_painting dummy
+scoreboard players set @s old_is_painting 0
 scoreboard objectives add is_painting dummy
-scoreboard objectives add const dummy
-scoreboard players set const1 const 1
 scoreboard objectives add sugar_needed_in_cup dummy
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
+scoreboard players set @e[tag=cup_counter,limit=1,distance=..4,sort=nearest] sugar_needed_in_cup 0
 scoreboard objectives add gravity_direction_is_down dummy
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
 scoreboard objectives add spawn_sugar_cooldown dummy
 scoreboard objectives add remaining_sugar_to_dispense dummy
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
-scoreboard players set const1 const 1
-scoreboard players set const0 const 0
+scoreboard players set global remaining_sugar_to_dispense 30
+scoreboard players set global remaining_sugar_to_dispense 0
+scoreboard objectives add current_level_num dummy
+scoreboard players set global current_level_num 0
+scoreboard players set @e[tag=cup_counter] sugar_needed_in_cup 0
+scoreboard players set global spawn_sugar_cooldown 0
