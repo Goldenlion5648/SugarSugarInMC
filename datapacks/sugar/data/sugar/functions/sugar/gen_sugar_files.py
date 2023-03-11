@@ -7,7 +7,7 @@ import helper_functions
 setup = OutputFile("setup")
 helper_update = OutputFile("update")
 helper_functions.UPDATE_JSON_FILE = f"{os.path.dirname(__file__)}\\..\\..\\..\\minecraft\\tags\\functions\\tick.json"
-
+# print(sys.path)
 class Tags(Enum):
     # CARD_OUTLINE_TAG = "card_outline"
 
@@ -15,19 +15,21 @@ class Tags(Enum):
         return str(self.value)
     
 game_corner = (100, 0, 100)
-wall_dims = (50, 50, 0)
-offset_corner = (50, 50, -3)
+wall_dims = (50, 55, 0)
+offset_corner = (50, 55, -3)
 game_height = wall_dims[1]
 background_block = "red_concrete"
 painting_block = "light_blue_concrete"
 sugar_block = "white_concrete"
 platform_block = "stone"
-
+sugar_for_current_level_score = "sugar_for_current_level"
+create_scoreboard(sugar_for_current_level_score)
 spawn_sugar_cooldown_score = "spawn_sugar_cooldown"
 sugar_in_cup_score = "sugar_in_cup"
 sugar_needed_in_cup_score = "sugar_needed_in_cup"
 create_scoreboard(sugar_in_cup_score)
 cup_counter_tag = "cup_counter"
+random_decider_tag = "random_decider"
 
 # cup_opening_block = "quartz_block"
 color_to_cup_opening = {
@@ -40,7 +42,7 @@ high_corner = element_wise(wall_dims, game_corner)
 
 place_wall = OutputFile("place_wall")
 place_wall.extend(
-    fill(element_wise(game_corner, offset_corner), game_corner, "air") +
+    fill(element_wise(game_corner, element_wise(offset_corner, (20, 20, -10))), game_corner, "air") +
     fill(game_corner, high_corner, background_block) +
     border(element_wise(game_corner, (0,0,-1)), element_wise(element_wise(wall_dims, (0,0,-1)), game_corner), "dark_oak_wood")
     # fill(element_wise(game_corner, (0,0,-1)), element_wise(element_wise(wall_dims, (0,0,-1)), game_corner), 'black_concrete', 'outline')
@@ -63,15 +65,15 @@ place_wall.extend(
 
 
 paint_brush_tag = "paint_brush"
-shoot_testing = OutputFile("shoot_testing")
-shoot_testing.extend(
-    shoot_facing(moving_entity='marker', bullet_label_tag=paint_brush_tag, step=1, code_to_run_after_step=
-        execute_if_block_matches("~ ~ ~", background_block,
-            setblock("^ ^ ^-1", painting_block, mode="keep") +
-            kill(at_s())
-        ), repeats_per_tick=100
-    )
-)
+# shoot_testing = OutputFile("shoot_testing")
+# shoot_testing.extend(
+#     shoot_facing(moving_entity='marker', bullet_label_tag=paint_brush_tag, step=1, code_to_run_after_step=
+#         execute_if_block_matches("~ ~ ~", background_block,
+#             setblock("^ ^ ^-1", painting_block, mode="keep") +
+#             kill(at_s())
+#         ), repeats_per_tick=100
+#     )
+# )
 
 replace_around_bullet = OutputFile("replace_around_bullet")
 replace_around_bullet.extend(
@@ -90,12 +92,15 @@ positions = ["^ ^ ^-1",
 "^ ^-1 ^-1",
 "^1 ^ ^-1",
 "^-1 ^ ^-1"]
+brush_replaceable_tag = BlockTag("brush_replaceable", 
+'air')
+brush_replaceable_tag.extend(color_to_cup_opening.keys())
 hacky_shoot_facing.extend(
     it.chain.from_iterable(
         execute_at(f"^ ^ ^{offset}",
             execute_if_block_matches("~ ~ ~1", background_block,
                 [
-                    setblock(f"~{x_off} ~{y_off} ~", painting_block, mode='keep')[0] 
+                    setblock_filtered(f"~{x_off} ~{y_off + 1} ~", painting_block,brush_replaceable_tag)[0] 
                     for x_off in [0]
                     for y_off in [0]
                     # for x_off in range(-1, 2)
@@ -173,17 +178,17 @@ def enter_cup(x_off, y_off1, y_off2):
 
 def movement_code(y_dir=-1):
     return list(it.chain.from_iterable(
-        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
+        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag],sort='furthest'), to_run=
             enter_cup(x_off, y_off1, y_off2)
         ) +
-        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag]), to_run=
+        execute_as_at(at_e(tags=[sugar_tag, has_not_moved_tag],sort='furthest'), to_run=
             execute_if_block(f"~{x_off} ~{y_off1} ~", AIR, 
                 execute_if_block(f"~{x_off} ~{y_off2} ~", AIR, 
                     add_tag(at_s(), should_move_tag)
                 )
             )
         ) +
-        execute_as_at(at_e(tag=should_move_tag), 
+        execute_as_at(at_e(tag=should_move_tag,sort='furthest'), 
             clone(HERE, HERE, f"~{x_off} ~{y_dir} ~") +
             setblock("~ ~ ~", AIR) +
             tp(at_s(), f"~{x_off} ~{y_dir} ~") +
@@ -196,6 +201,8 @@ def movement_code(y_dir=-1):
             (1, (0, y_dir))
         ]
     ))
+
+    
 
 has_not_moved_tag = "has_not_moved"
 sugar_movement = OutputFile("sugar_movement", is_update_file=True)
@@ -218,14 +225,16 @@ sugar_movement.extend(
 sugar_spawner = OutputFile("sugar_spawner", is_update_file=True)
 remaining_sugar_to_dispense_score = "remaining_sugar_to_dispense"
 create_scoreboard(remaining_sugar_to_dispense_score, 30)
-middle_top_of_board = ((high_corner[0] + game_corner[0]) // 2 + .5, high_corner[1] - 5.5, game_corner[2] - .5)
+middle_top_of_board = ((high_corner[0] + game_corner[0]) // 2 + .5, high_corner[1] - 7.5, game_corner[2] - .5)
 sugar_spawner.extend(
     execute_if_score_matches(remaining_sugar_to_dispense_score, '1..', 
         execute_if_score_equals(spawn_sugar_cooldown_score, 0,
             execute_positioned(middle_top_of_board,
-                call_function(sugar_maker)
-            ) +
-            operation(remaining_sugar_to_dispense_score, '-=', 1)
+                execute_if_block(HERE, AIR,
+                    call_function(sugar_maker) +
+                    operation(remaining_sugar_to_dispense_score, '-=', 1)
+                )
+            )
         )
     )
 )
@@ -253,15 +262,19 @@ flip_gravity.extend(
     )
 )
 
+
 reset_scores = OutputFile("reset_scores")
 reset_scores.extend(
-    set_score(remaining_sugar_to_dispense_score, 30),
+    set_score_from_other_score(remaining_sugar_to_dispense_score, sugar_for_current_level_score),
     set_score(is_painting_score, 0, at_a()),
     set_score(old_is_painting_score, 0, at_a()),
     set_score(gravity_direction_is_down_score, 1),
     set_score(spawn_sugar_cooldown_score, 100),
 )
 
+def place_filter_at(pos):
+    pos = element_wise(pos, [0, 0, -1])
+    return place("sugar:orange_filter", element_wise(game_corner, pos))
 white = 'white'
 def place_cup_at(pos_x, pos_y, color=white, upside_down=False):
     structure_name = "cup"
@@ -277,13 +290,52 @@ levels_holder = OutputFile("levels_holder", folder="levels")
 # for i in range(5):
 board_center = get_center(game_corner, high_corner)
 cur_level = levels_holder.add_variant(0)
-
 cur_level.extend(
+    set_score(sugar_for_current_level_score, 300),
     place_cup_at(15, 5)
 )
+cur_level = levels_holder.add_variant(1)
+cur_level.extend(
+    set_score(sugar_for_current_level_score, 300),
+    place_cup_at(10, 5),
+    place_cup_at(30, 5)
+)
 
+cur_level = levels_holder.add_variant(2)
+cur_level.extend(
+    set_score(sugar_for_current_level_score, 300),
+    place_cup_at(30, 25),
+    place_cup_at(5, game_height - 8, upside_down=True)
+)
 
-current_level_num = create_scoreboard("current_level_num", 0)
+board_center_from_corner = element_wise(board_center, game_corner, op.sub)
+cur_level = levels_holder.add_variant()
+cur_level.extend(
+    set_score(sugar_for_current_level_score, 300),
+    place_cup_at(30, 5, 'white'),
+    place_filter_at(element_wise(board_center_from_corner, [-8, 0, 0])),
+    place_cup_at(5, 5, 'orange')
+)
+
+cur_level = levels_holder.add_variant()
+cur_level.extend(
+    set_score(sugar_for_current_level_score, 700),
+    list_chain(
+            place_cup_at(x, 25) + place_cup_at(x, 15, upside_down=True)
+            for x in range(10, 35, 10)
+    )
+)
+
+cur_level = levels_holder.add_variant()
+cur_level.extend(
+    set_score(sugar_for_current_level_score, 1),
+    list_chain(
+            place_cup_at(x, 25) + place_cup_at(x, 15, upside_down=True)
+            for x in range(10, 35, 10)
+    )
+)
+
+current_level_num = create_scoreboard("current_level_num")
 place_level_contents = OutputFile("place_level_contents",
     list_chain(execute_if_score_equals(current_level_num, i, 
         call_function(levels_holder.get_variant(i))
@@ -316,15 +368,18 @@ cup_update.extend(
     set_to_max(sugar_needed_in_cup_score, 0, at_e(tag=cup_counter_tag))
 )
 
-place_filter = OutputFile("place_filter")
-place_filter.extend(
-    place("sugar:orange_filter", element_wise(game_corner, (15, 15, -1)))
+# place_filter = OutputFile("place_filter")
+# place_filter.extend(
+# )
+place_random_deciders = OutputFile("place_random_deciders",
+    summon_marker(game_corner, tag=random_decider_tag),
+    summon_marker(game_corner, tag=random_decider_tag)
 )
-
 reset_level = OutputFile("reset_level")
 reset_level.extend(
     call_function(remove_all_sugar),
     kill(at_e(type='!player')),
+    call_function(place_random_deciders),
     call_function(place_wall),
     call_function(place_title),
     call_function(reset_scores),
@@ -334,6 +389,19 @@ reset_level.extend(
     # call_function(place_filter),
     set_score(sugar_needed_in_cup_score, 100, at_e(tag=cup_counter_tag)),
     clear_scheduled_functions()
+)
+
+remaining_sugar_required_to_progress_score = create_scoreboard("remaining_sugar_required_to_progress", 0)
+
+check_level_complete = OutputFile("check_level_complete", is_update_file=True)
+check_level_complete.extend(
+    execute_positioned(board_center, 
+        set_score_to_total_of_other_scores(remaining_sugar_required_to_progress_score, sugar_needed_in_cup_score, at_e(tag=cup_counter_tag, distance='..30'))
+    ),
+    execute_if_score_equals(remaining_sugar_required_to_progress_score, 0,
+        increment(current_level_num) +
+        call_function(reset_level)
+    )
 )
 
 end_of_tick_code.extend(

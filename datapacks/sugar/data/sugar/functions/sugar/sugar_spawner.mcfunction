@@ -1,2 +1,1 @@
-execute if score global remaining_sugar_to_dispense matches 1.. run execute if score global spawn_sugar_cooldown matches 0 run execute positioned 125.5 44.5 99.5 run function sugar:sugar/sugar_maker
-execute if score global remaining_sugar_to_dispense matches 1.. run execute if score global spawn_sugar_cooldown matches 0 run scoreboard players operation global remaining_sugar_to_dispense -= const1 const
+execute if score global remaining_sugar_to_dispense matches 1.. run execute if score global spawn_sugar_cooldown matches 0 run execute positioned 125.5 47.5 99.5 run execute if block ~ ~ ~ air run function sugar:sugar/nested_functions/nested_function29
