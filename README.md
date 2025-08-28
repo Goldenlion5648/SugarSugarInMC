@@ -11,3 +11,4 @@ The player can draw lines from a distance to redirect the sugar. The goal is to 
 ![alt text](explanation_images/drawing_lines.png)
 
 The player can even reverse gravity to make sugar "fall" upward.
+![alt text](explanation_images/gravity.png)
